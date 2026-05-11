@@ -7,6 +7,7 @@ This repository contains JavaScript examples focused on basic programming concep
 - `Chapter01_Basics/` - Basic JavaScript examples and Playwright setup verification.
 - `Chapter02_JavascriptConcepts/` - JavaScript fundamentals and basic scripts.
 - `Chapter03_IdentifierLiterals/` - Identifier naming rules, case styles, comments, and VS Code shortcut markdown files.
+- `Chapter04_JavascriptConcepts/` - Advanced JavaScript concepts including variable declarations (var, let, const), function scoping, and hoisting.
 
 ## Notes
 
