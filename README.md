@@ -57,6 +57,8 @@ graph TB
             ch14_obj["Ch 14: Objects ✅"]
             ch15_2d["Ch 15: 2D Arrays ✅"]
             ch16_cb["Ch 16: Callbacks ✅"]
+            ch17_pr["Ch 17: Promises ✅"]
+            ch18_aa["Ch 18: Async / Await ✅"]
         end
 
         subgraph adv["⚙️ Advanced JS (Weeks 7–8)"]
@@ -294,6 +296,25 @@ LearnPlaywrightBatch2x/
 │   ├── 151_CB_Hell_20_Steps.js         # Pyramid of Doom — 24-step E2E checkout, drifting right
 │   ├── 152_CB_Parameter.js             # Callback with parameters — callback(name, status)
 │   └── 153_CB_Return.js                # Callback as return driver — calculate(a,b,operation)
+│
+├── chapter_17_Promise/                 ✅ Promises — resolve/reject, then/catch/finally, chaining, all/allSettled
+│   ├── 154_Promise.js                  # new Promise(resolve, reject) — the executor, pending state
+│   ├── 155_Promise_REAL_API.js         # .then() runs only on resolve — read response.status
+│   ├── 156_Promise_REAL_API_PART2.js   # .catch() runs only on reject — .then() skipped
+│   ├── 157_Finally.js                  # .finally() always runs — cleanup regardless of outcome
+│   ├── 158_Call_Py_Problem.js          # Promise chaining — flatten callback hell into .then() steps
+│   ├── 159_Promise_ALL.js              # Promise.allSettled — every result, no stop-at-first-fail
+│   └── 160_Promise_IQ.js               # IQ — chaining, throw-in-then, all vs allSettled traps
+│
+├── chapter_18_Async_Await/             ✅ Async / Await — await a promise, try/catch/finally, seq vs parallel
+│   ├── 161_Async.js                    # async + try/catch/finally — await a rejected promise
+│   ├── 162_Aysnc_P2.js                 # await unwraps a promise — the page.goto() pattern
+│   ├── 163_PyODom.js                   # E2E login as flat awaits instead of a .then() chain
+│   ├── 164_Async_Ex.js                 # Playwright test — async ({ page }) + await expect()
+│   ├── 165_AA_Seq.js                   # Sequential awaits — step 2 depends on step 1 (~slow)
+│   ├── 165_AA_Parallel.js              # Parallel — await Promise.allSettled([...]) (~fast)
+│   ├── 166_IQ.js                       # IQ — await order, async returns a promise
+│   └── 167_ACLogin.js                  # Real PW test — test.step, loginAs, toBeHidden
 │
 └── README.md                           👋 You are here
 ```
@@ -3807,14 +3828,250 @@ console.log("Test 3: moving to next test");
 
 ---
 
+## 📖 What's in Chapter 17 — Promises (Available Now)
+
+### Files
+
+| File | Topic | What you'll learn |
+|------|-------|-------------------|
+| `154_Promise.js` | Creating a Promise | `new Promise((resolve, reject) => {})` — the executor runs now; logging the promise shows its state |
+| `155_Promise_REAL_API.js` | `.then()` on resolve | `.then()` fires **only** when the promise resolves — read `response.status` |
+| `156_Promise_REAL_API_PART2.js` | `.catch()` on reject | `.catch()` fires **only** on reject; `.then()` is skipped entirely |
+| `157_Finally.js` | `.finally()` always runs | Cleanup that runs regardless of resolve or reject |
+| `158_Call_Py_Problem.js` | Promise chaining | Return a promise from `.then()` to flatten the callback pyramid into a flat chain |
+| `159_Promise_ALL.js` | `Promise.allSettled` | Run checks in parallel, get **every** result (status + value/reason), never stop at first fail |
+| `160_Promise_IQ.js` | IQ traps | Chaining order, `throw` inside `.then()` jumps to `.catch()`, `all` vs `allSettled` |
+
+### Concept
+
+A **Promise** is an object representing a value that isn't ready yet — it's in one of three states: **pending**, **fulfilled** (`resolve`), or **rejected** (`reject`). You attach `.then()` / `.catch()` / `.finally()` handlers that run when it settles.
+
+### Why
+
+Promises fix callback hell — instead of nesting callbacks into a rightward "pyramid of doom" (Ch 16), you chain flat `.then()` steps. They're the foundation under `async/await` and every Playwright `await page.*` call.
+
+**Q&A — why use this?**
+- **Q: When does `.then()` vs `.catch()` run?** A: `.then()` runs only when the promise **resolves**; `.catch()` runs only when it **rejects**. `.finally()` runs either way.
+- **Q: How does chaining beat callback hell?** A: Returning a promise from inside `.then()` lets the next `.then()` wait for it — the steps stay flat and left-aligned instead of nesting deeper each time.
+- **Q: `Promise.all` or `Promise.allSettled`?** A: `all` rejects the moment **any** promise fails (fail-fast). `allSettled` waits for **all** and reports each one's status — what you want for a test report that shouldn't stop at the first failure.
+
+### Key Concepts
+
+```mermaid
+mindmap
+  root((Chapter 17 — Promises))
+    States
+      pending
+      fulfilled resolve
+      rejected reject
+    Handlers
+      then on resolve
+      catch on reject
+      finally always
+    Chaining
+      return promise in then
+      flat steps not nested
+      kills callback hell
+    Combinators
+      all fail-fast
+      allSettled every result
+    IQ traps
+      throw in then jumps to catch
+      then skipped on reject
+      all stops at first fail
+    Next
+      async / await
+```
+
+### Run them
+
+```bash
+node chapter_17_Promise/154_Promise.js                 # → Promise { 'Pizza is delivered...' }
+node chapter_17_Promise/155_Promise_REAL_API.js         # → 200
+node chapter_17_Promise/156_Promise_REAL_API_PART2.js   # → "500 Error" (catch runs, then skipped)
+node chapter_17_Promise/157_Finally.js                  # → { status: 'done' } then always-runs line
+node chapter_17_Promise/158_Call_Py_Problem.js          # → Step 1..4 flat chain then "Done execution!"
+node chapter_17_Promise/159_Promise_ALL.js              # → Test 1 fulfilled, Test 2 rejected, Test 3 fulfilled
+node chapter_17_Promise/160_Promise_IQ.js               # → allSettled report objects
+```
+
+---
+
+### 158 — Promise chaining: flatten the pyramid
+
+**Concept:** When each async step returns a promise, you `return` it from inside `.then()` so the **next** `.then()` waits for it. The four-level login pyramid from Ch 16 becomes a flat, top-to-bottom chain.
+
+**Why:** Callback hell drifts right with every step and is hard to read or error-handle. A promise chain stays left-aligned and gets **one** `.catch()` at the end for every step, plus **one** `.finally()` for cleanup.
+
+**Q&A — why use this?**
+- **Q: Why `return goToLogin()` instead of just calling it?** A: Returning the promise makes the next `.then()` wait for it to resolve. Without `return`, the chain doesn't wait and order breaks.
+- **Q: How many `.catch()` blocks do I need?** A: One at the end. Any reject (or `throw`) anywhere in the chain skips straight to it — no per-step error handling.
+- **Q: Does `.finally()` see the result?** A: No — `.finally()` takes no argument; it runs for cleanup (close browser, log "done") whether the chain resolved or rejected.
+
+```mermaid
+flowchart TD
+    A[openBrowser&#41;] --> B[then: goToLogin&#41;]
+    B --> C[then: enterCredentials&#41;]
+    C --> D[then: clickLogin&#41;]
+    D --> E[catch: any error]
+    E --> F[finally: Done execution]
+```
+
+```js
+openBrowser()
+    .then(function (msg) {
+        console.log("Step 1", msg);
+        return goToLogin();        // return → next .then waits
+    })
+    .then(function (msg) {
+        console.log("Step 2 :", msg);
+        return enterCredentials();
+    })
+    .then(function (msg) {
+        console.log("Step 3 :", msg);
+        return clickLogin();
+    })
+    .then(function (msg) {
+        console.log("Step 4 :", msg);
+    })
+    .catch(function (error) {        // one catch for the whole chain
+        console.log("Error:", error);
+    })
+    .finally(function () {           // always runs — cleanup
+        console.log("Done execution!");
+    });
+```
+
+| Approach | Shape | Error handling |
+|----------|-------|----------------|
+| Callbacks (Ch 16) | nested pyramid, drifts right | one `catch` per level |
+| Promise chain | flat `.then()` steps | one `.catch()` for all |
+
+---
+
+## 📖 What's in Chapter 18 — Async / Await (Available Now)
+
+### Files
+
+| File | Topic | What you'll learn |
+|------|-------|-------------------|
+| `161_Async.js` | `async` + `try/catch/finally` | `await` a rejected promise; `catch` handles the error, `finally` always cleans up |
+| `162_Aysnc_P2.js` | `await` unwraps a promise | `await getToken()` gives the value, not the promise — the `await page.goto()` pattern |
+| `163_PyODom.js` | Flat E2E with `await` | The Ch 17 login chain rewritten as plain top-to-bottom `await` steps |
+| `164_Async_Ex.js` | Playwright test shape | `test('...', async ({ page }) => {})` + `await expect(page).toHaveTitle()` |
+| `165_AA_Seq.js` | Sequential | Three awaits in a row — each waits for the last (~6s total when each is 2s) |
+| `165_AA_Parallel.js` | Parallel | `await Promise.allSettled([...])` fires all at once (~2s total) |
+| `166_IQ.js` | IQ traps | `await` runs lines in order; an `async` function always returns a promise |
+| `167_ACLogin.js` | Real PW test | `test.step`, `loginAs`, `await expect(...).toBeHidden()` |
+
+### Concept
+
+`async`/`await` is **syntax sugar over Promises** — mark a function `async`, then `await` any promise inside it to pause until it settles and get the value directly. Async code finally reads top-to-bottom like sync code.
+
+### Why
+
+Promise chains (`.then().then()`) still nest and are awkward to debug. `await` flattens them into ordinary lines with normal `try/catch` — exactly how every modern Playwright test is written (`await page.goto()`, `await expect()`).
+
+**Q&A — why use this?**
+- **Q: What does `await` actually do?** A: It pauses the `async` function until the promise settles, then returns the resolved value (or throws the rejection). The rest of your program keeps running.
+- **Q: How do I handle errors?** A: Plain `try/catch/finally` around the `await` — no `.catch()` handler needed. The `finally` block always runs.
+- **Q: Sequential or parallel?** A: Use sequential `await`s only when a step **depends** on the previous result. If they're independent, fire them together with `await Promise.all/allSettled([...])` — far faster.
+
+### Key Concepts
+
+```mermaid
+mindmap
+  root((Chapter 18 — Async / Await))
+    Basics
+      async marks the function
+      await pauses for a promise
+      returns the value not the promise
+    Errors
+      try / catch / finally
+      catch on reject
+      finally always
+    Sugar over promises
+      flat lines not then-chains
+      reads like sync code
+    Sequential
+      await one then next
+      step depends on previous
+      slower sum of waits
+    Parallel
+      await Promise.allSettled
+      independent steps together
+      faster max of waits
+    Playwright
+      async page fixture
+      await page.goto
+      await expect
+```
+
+### Run them
+
+```bash
+node chapter_18_Async_Await/161_Async.js          # → Error 503 reject, then "Clean up!!"
+node chapter_18_Async_Await/162_Aysnc_P2.js       # → abc123
+node chapter_18_Async_Await/163_PyODom.js         # → Step 1..4 as flat awaits
+node chapter_18_Async_Await/165_AA_Seq.js         # → Login/Dashboard/Report, Time ~6000ms
+node chapter_18_Async_Await/165_AA_Parallel.js    # → all three settled, ~2000ms total
+node chapter_18_Async_Await/166_IQ.js             # → opened, clicked, verified — in order
+```
+
+---
+
+### 165 — Sequential vs Parallel awaits
+
+**Concept:** Each `await` pauses until its promise resolves. Put them on separate lines and they run **one after another** (sequential). Hand them all to `Promise.all`/`allSettled` and `await` once, and they run **at the same time** (parallel).
+
+**Why:** Sequential is correct when step 2 needs step 1's result. But awaiting independent calls one-by-one wastes time — three 2-second calls take 6s sequentially vs ~2s in parallel. Picking right is the difference between a slow suite and a fast one.
+
+**Q&A — why use this?**
+- **Q: When MUST I go sequential?** A: When a later step uses an earlier step's value — login → use the token → call the API. Order matters, so you wait.
+- **Q: When should I go parallel?** A: When the calls are independent (check auth, check DB, check cache). Fire them together and await all results at once.
+- **Q: `Promise.all` or `allSettled` for parallel?** A: `all` rejects on the first failure; `allSettled` always returns every result with its status — better for a test report.
+
+```mermaid
+flowchart LR
+    subgraph Seq["Sequential ~6s"]
+        S1[await Login 2s] --> S2[await Dashboard 2s] --> S3[await Report 2s]
+    end
+    subgraph Par["Parallel ~2s"]
+        P0[await Promise.allSettled] --> P1[Auth 2s]
+        P0 --> P2[Account 2s]
+        P0 --> P3[Support 2s]
+    end
+```
+
+```js
+// Sequential — each waits for the previous (~6s)
+let r1 = await apiCall("Login");
+let r2 = await apiCall("Dashboard");
+let r3 = await apiCall("Report");
+
+// Parallel — all fire at once, await together (~2s)
+let [a, b, c] = await Promise.allSettled([
+    apiCall("Auth Service"),
+    apiCall("User Account Creation"),
+    apiCall("Support Page API"),
+]);
+```
+
+| Pattern | When | Speed (3 × 2s calls) |
+|---------|------|----------------------|
+| Sequential `await`s | step depends on previous | ~6s (sum) |
+| Parallel `Promise.allSettled` | independent steps | ~2s (max) |
+
+---
+
 ## 🔭 What's Coming Next
 
 ```mermaid
 graph TD
-    subgraph next["Next Up — Promises, Async / Await"]
-        N1[Ch 15: 2D Arrays ✅] --> N2[Ch 16: Callbacks ✅]
-        N2 --> N3[Ch 17: Promises]
-        N3 --> N4[Ch 18: Async / Await]
+    subgraph next["Next Up — Playwright Basics"]
+        N1[Ch 17: Promises ✅] --> N2[Ch 18: Async / Await ✅]
+        N2 --> N3[Ch 19: Playwright Basics]
+        N3 --> N4[Ch 20: Locators & POM]
     end
 
     style next fill:#fff3e0,stroke:#e65100
@@ -3837,6 +4094,8 @@ graph TD
 - ✅ Chapter 14 — **Objects**: literals & access, primitive vs reference, destructuring, spread copy, `let` vs `const` for objects, get/set + `this`, `keys`/`values`/`entries` (files `124`–`137`)
 - ✅ Chapter 15 — **2D Arrays**: grids & shape (rows × cols), nested-loop traversal (`for`/`for...of`/`forEach`), `write` vs `log` table printing, `map`+`reduce` row sums, failed-case filtering, star-pattern IQ (files `138`–`142`)
 - ✅ Chapter 16 — **Callbacks**: pass-a-function (named/anon/arrow), the `test()` callback shape, sync vs async (`forEach` vs `setTimeout`), event-loop ordering, callback hell / 24-step pyramid of doom, callbacks with parameters & return-driving (files `143`–`153`)
+- ✅ Chapter 17 — **Promises**: `new Promise` (resolve/reject), `.then`/`.catch`/`.finally`, chaining to flatten callback hell, `Promise.all` vs `allSettled`, IQ traps (`throw` in `.then`, settle order) (files `154`–`160`)
+- ✅ Chapter 18 — **Async / Await**: `async`/`await` as sugar over promises, `try/catch/finally` error handling, flat E2E awaits vs `.then()` chains, sequential vs parallel (`Promise.allSettled`), first real Playwright tests (files `161`–`167`)
 - ✅ **Per-chapter README** — every chapter folder now has its own deep-dive README.md
 
 ---

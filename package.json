@@ -1,0 +1,25 @@
+{
+  "scripts": {
+    "pw": "playwright"
+  },
+  "dependencies": {
+    "deps": "1.0.0",
+    "playwright": "1.60.0"
+  },
+  "name": "learnplaywrightbatch2x",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/revanth-63/Learnplaywrightbatch2x.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/revanth-63/Learnplaywrightbatch2x/issues"
+  },
+  "homepage": "https://github.com/revanth-63/Learnplaywrightbatch2x#readme"
+}
