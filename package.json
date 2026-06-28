@@ -128,7 +128,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/revanth-63/Learnplaywrightbatch2x/issues"
   },
